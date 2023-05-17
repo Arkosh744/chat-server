@@ -12,7 +12,7 @@ const (
 )
 
 type AuthConfig interface {
-	GetPort() string
+	GetHost() string
 }
 
 type authConfig struct {
@@ -30,6 +30,6 @@ func NewAuthConfig() (*authConfig, error) {
 	return &cfg, nil
 }
 
-func (c *authConfig) GetPort() string {
+func (c *authConfig) GetHost() string {
 	return fmt.Sprintf(c.Host + ":" + c.Port)
 }

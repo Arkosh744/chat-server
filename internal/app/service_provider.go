@@ -34,10 +34,10 @@ func (s *serviceProvider) newAuthConfig() config.AuthConfig {
 
 func (s *serviceProvider) GetAuthClient(_ context.Context) auth.Client {
 	if s.authClient == nil {
-		conn, err := grpc.Dial(s.newAuthConfig().GetPort(), grpc.WithDefaultCallOptions(),
+		conn, err := grpc.Dial(s.newAuthConfig().GetHost(), grpc.WithDefaultCallOptions(),
 			grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			log.Fatalf("failed to connect %s: %s", s.authConfig.GetPort(), err)
+			log.Fatalf("failed to connect %s: %s", s.authConfig.GetHost(), err)
 		}
 		closer.Add(conn.Close)
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -16,6 +17,7 @@ type AuthConfig interface {
 
 type authConfig struct {
 	Port string `required:"true"`
+	Host string `required:"true"`
 }
 
 func NewAuthConfig() (*authConfig, error) {
@@ -29,5 +31,5 @@ func NewAuthConfig() (*authConfig, error) {
 }
 
 func (c *authConfig) GetPort() string {
-	return c.Port
+	return fmt.Sprintf(c.Host + ":" + c.Port)
 }

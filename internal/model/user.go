@@ -1,15 +1,11 @@
 package model
 
-import (
-	"strings"
-)
-
-type Role int
+import desc "github.com/Arkosh744/auth-service-api/pkg/user_v1"
 
 const (
-	RoleUnknown Role = iota // 0
-	RoleAdmin               // 1
-	RoleUser                // 2
+	RoleUnknown = "unknown"
+	RoleAdmin   = "admin"
+	RoleUser    = "user"
 )
 
 type UserIdentifier struct {
@@ -20,27 +16,14 @@ type UserIdentifier struct {
 type User struct {
 	UserIdentifier
 
-	Password        string
-	PasswordConfirm string
-	Role            Role
+	Role string
 }
 
-func (r Role) String() string {
-	switch r {
-	case RoleAdmin:
-		return "admin"
-	case RoleUser:
-		return "user"
-	default:
-		return ""
-	}
-}
-
-func StringToRole(roleStr string) Role {
-	switch strings.ToLower(roleStr) {
-	case "admin":
+func ToRole(role desc.Role) string {
+	switch role {
+	case desc.Role_ADMIN:
 		return RoleAdmin
-	case "user":
+	case desc.Role_USER:
 		return RoleUser
 	default:
 		return RoleUnknown

@@ -3,14 +3,12 @@ package app
 import (
 	"context"
 	"github.com/Arkosh744/chat-server/internal/closer"
-	config "github.com/Arkosh744/chat-server/internal/config"
-	"go.uber.org/zap"
-	"log"
+	"github.com/Arkosh744/chat-server/internal/config"
+	"github.com/Arkosh744/chat-server/internal/log"
 )
 
 type App struct {
 	serviceProvider *serviceProvider
-	log             *zap.SugaredLogger
 }
 
 func NewApp(ctx context.Context) (*App, error) {
@@ -30,14 +28,17 @@ func (app *App) Run() error {
 		closer.Wait()
 	}()
 
+	// TODO: run
+
 	return nil
 }
 
 func (app *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
 		config.Init,
-		app.initLogger,
+		log.InitLogger,
 		app.initServiceProvider,
+		app.initGRPCClient,
 	}
 
 	for _, init := range inits {
@@ -49,19 +50,14 @@ func (app *App) initDeps(ctx context.Context) error {
 	return nil
 }
 
-func (app *App) initLogger(_ context.Context) error {
-	zapLog, err := config.SelectLogger()
-	if err != nil {
-		log.Fatalf("failed to get logger: %s", err.Error())
-	}
-
-	app.log = zapLog.Sugar()
+func (app *App) initServiceProvider(_ context.Context) error {
+	app.serviceProvider = newServiceProvider()
 
 	return nil
 }
 
-func (app *App) initServiceProvider(_ context.Context) error {
-	app.serviceProvider = newServiceProvider(app.log)
+func (app *App) initGRPCClient(ctx context.Context) error {
+	app.serviceProvider.GetChatService(ctx)
 
 	return nil
 }

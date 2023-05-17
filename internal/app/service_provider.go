@@ -2,29 +2,28 @@ package app
 
 import (
 	"context"
-	"github.com/Arkosh744/auth-service-api/internal/api/user_v1"
-	userService "github.com/Arkosh744/auth-service-api/internal/service/user"
+	"github.com/Arkosh744/auth-service-api/pkg/user_v1"
 	"github.com/Arkosh744/chat-server/internal/client/grpc/auth"
 	"github.com/Arkosh744/chat-server/internal/closer"
 	"github.com/Arkosh744/chat-server/internal/config"
+	"github.com/Arkosh744/chat-server/internal/log"
 	"github.com/Arkosh744/chat-server/internal/service/chat"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type serviceProvider struct {
 	authConfig  config.AuthConfig
 	authClient  auth.Client
-	chatService *chat.Service
-
-	log *zap.SugaredLogger
+	chatService chat.Service
 }
 
 func (s *serviceProvider) newAuthConfig() config.AuthConfig {
 	if s.authConfig == nil {
 		cfg, err := config.NewAuthConfig()
 		if err != nil {
-			s.log.Fatal("failed to get auth config", zap.Error(err))
+			log.Fatalf("failed to get auth config", zap.Error(err))
 		}
 
 		s.authConfig = cfg
@@ -35,35 +34,28 @@ func (s *serviceProvider) newAuthConfig() config.AuthConfig {
 
 func (s *serviceProvider) GetAuthClient(_ context.Context) auth.Client {
 	if s.authClient == nil {
-		conn, err := grpc.Dial(s.authConfig.GetPort(), grpc.WithDefaultCallOptions())
+		conn, err := grpc.Dial(s.newAuthConfig().GetPort(), grpc.WithDefaultCallOptions(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			s.log.Fatalf("failed to connect %s: %s", s.authConfig.GetPort(), err)
+			log.Fatalf("failed to connect %s: %s", s.authConfig.GetPort(), err)
 		}
 		closer.Add(conn.Close)
 
 		client := user_v1.NewUserClient(conn)
-		s.authClient = authClient.NewClient(client)
+		s.authClient = auth.NewClient(client)
 	}
 
 	return s.authClient
 }
 
-func newServiceProvider(log *zap.SugaredLogger) *serviceProvider {
-	return &serviceProvider{log: log}
+func newServiceProvider() *serviceProvider {
+	return &serviceProvider{}
 }
 
-func (s *serviceProvider) GetUserService(ctx context.Context) userService.Service {
-	if s.userService == nil {
-		s.userService = userService.NewService(s.GetUserRepo(ctx), s.log)
+func (s *serviceProvider) GetChatService(ctx context.Context) chat.Service {
+	if s.chatService == nil {
+		s.chatService = chat.NewService(s.GetAuthClient(ctx))
 	}
 
-	return s.userService
-}
-
-func (s *serviceProvider) GetUserImpl(ctx context.Context) *userV1.Implementation {
-	if s.userImpl == nil {
-		s.userImpl = userV1.NewImplementation(s.GetUserService(ctx), s.log)
-	}
-
-	return s.userImpl
+	return s.chatService
 }

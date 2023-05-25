@@ -5,12 +5,14 @@ import (
 	"github.com/Arkosh744/chat-server/internal/client/grpc/auth"
 	"github.com/Arkosh744/chat-server/internal/log"
 	"github.com/Arkosh744/chat-server/internal/model"
+	"github.com/google/uuid"
 )
 
 var _ Service = (*service)(nil)
 
 type Service interface {
 	ListUsers(ctx context.Context) ([]*model.User, error)
+	CreateChat(ctx context.Context, usernames []string) (uuid.UUID, error)
 }
 
 type service struct {
@@ -39,4 +41,8 @@ func (s *service) ListUsers(ctx context.Context) ([]*model.User, error) {
 	}
 
 	return res, nil
+}
+
+func (s *service) CreateChat(_ context.Context, _ []string) (uuid.UUID, error) {
+	return uuid.New(), nil
 }

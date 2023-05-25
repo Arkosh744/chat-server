@@ -11,7 +11,7 @@ var _ Client = (*client)(nil)
 
 type Client interface {
 	List(ctx context.Context) ([]*userV1.UserInfo, error)
-	Check(ctx context.Context, endpoint string) (bool, error)
+	Check(ctx context.Context, endpoint string) error
 }
 
 type client struct {
@@ -35,13 +35,10 @@ func (c *client) List(ctx context.Context) ([]*userV1.UserInfo, error) {
 	return res.GetUsers(), nil
 }
 
-func (c *client) Check(ctx context.Context, endpoint string) (bool, error) {
-	res, err := c.accessClient.CheckAccess(ctx, &accessV1.CheckAccessRequest{
-		Endpoint: endpoint,
-	})
-	if err != nil {
-		return false, err
+func (c *client) Check(ctx context.Context, endpoint string) error {
+	if _, err := c.accessClient.CheckAccess(ctx, &accessV1.CheckAccessRequest{Endpoint: endpoint}); err != nil {
+		return err
 	}
 
-	return res.GetIsAllowed(), nil
+	return nil
 }

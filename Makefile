@@ -32,6 +32,33 @@ generate-chat-api:
 	--plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
 	api/chat_v1/chat.proto
 
+CERTS_DIR=./certs
+CA_KEY=$(CERTS_DIR)/ca.key
+CA_CRT=$(CERTS_DIR)/ca.crt
+KEY_SIZE=4096
+DAYS=1024
+SHA=sha256
+CLIENT_DN="/C=US/ST=California/L=San Francisco/O=MyOrg/OU=MyDepartment/CN=localhost"
+CLIENT_KEY=$(CERTS_DIR)/client.key
+CLIENT_CSR=$(CERTS_DIR)/client.csr
+CLIENT_CRT=$(CERTS_DIR)/client.crt
+
+generate-client-key:
+	openssl genrsa -out $(CLIENT_KEY) $(KEY_SIZE)
+
+generate-client-csr:
+	openssl req -new -key $(CLIENT_KEY) -out $(CLIENT_CSR) -subj $(CLIENT_DN)
+
+generate-client-crt:
+	openssl x509 -req -in $(CLIENT_CSR) -CA $(CA_CRT) -CAkey $(CA_KEY) -CAcreateserial \
+ 		-out $(CLIENT_CRT) -days $(DAYS) -$(SHA) -extensions client_ext -extfile $(CERTS_DIR)/v3.ext
+
+generate-openssl-keys:
+	make generate-client-key
+	make generate-client-csr
+	make generate-client-crt
+
+
 vendor-proto:
 		@if [ ! -d vendor.protogen/validate ]; then \
 			mkdir -p vendor.protogen/validate &&\

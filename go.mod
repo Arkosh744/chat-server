@@ -3,7 +3,7 @@ module github.com/Arkosh744/chat-server
 go 1.20
 
 require (
-	github.com/Arkosh744/auth-service-api v0.0.0-20230524185900-5214fc20a2ed
+	github.com/Arkosh744/auth-service-api v0.0.0-20230525181501-d9cdb683881a
 	github.com/golang/protobuf v1.5.3
 	github.com/google/uuid v1.3.0
 	github.com/joho/godotenv v1.5.1

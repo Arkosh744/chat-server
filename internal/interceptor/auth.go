@@ -5,7 +5,9 @@ import (
 	"github.com/Arkosh744/chat-server/internal/client/grpc/auth"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"strings"
 )
 
@@ -34,8 +36,11 @@ func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 
 		ctx = metadata.NewOutgoingContext(ctx, md)
 
-		ok, err = i.authClient.Check(ctx, info.FullMethod)
-		if err != nil || !ok {
+		if err = i.authClient.Check(ctx, info.FullMethod); err != nil {
+			if strings.Contains(err.Error(), "access denied") {
+				return nil, status.Errorf(codes.PermissionDenied, "access denied")
+			}
+
 			return nil, errors.Wrap(err, "failed to check access")
 		}
 

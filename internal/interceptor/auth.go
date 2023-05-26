@@ -2,13 +2,14 @@ package interceptor
 
 import (
 	"context"
+	"strings"
+
 	"github.com/Arkosh744/chat-server/internal/client/grpc/auth"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"strings"
 )
 
 type AuthInterceptor struct {
@@ -24,14 +25,6 @@ func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
 			return nil, errors.New("failed to get metadata from incoming context")
-		}
-
-		if len(md["authorization"]) == 0 {
-			return nil, errors.New("authorization header is not provided")
-		}
-
-		if !strings.Contains(md["authorization"][0], "Bearer ") {
-			return nil, errors.New("invalid authorization header format")
 		}
 
 		ctx = metadata.NewOutgoingContext(ctx, md)

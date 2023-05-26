@@ -2,8 +2,7 @@ package app
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
+
 	accessV1 "github.com/Arkosh744/auth-service-api/pkg/access_v1"
 	userV1 "github.com/Arkosh744/auth-service-api/pkg/user_v1"
 	chatV1 "github.com/Arkosh744/chat-server/internal/api/chat_v1"
@@ -15,7 +14,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"os"
 )
 
 type serviceProvider struct {
@@ -43,26 +41,10 @@ func (s *serviceProvider) newAuthConfig() config.AuthConfig {
 
 func (s *serviceProvider) GetAuthClient(ctx context.Context) auth.Client {
 	if s.authClient == nil {
-		certificate, err := tls.LoadX509KeyPair("./certs/client.crt", "./certs/client.key")
+		creds, err := credentials.NewClientTLSFromFile("./certs/ca.crt", "localhost")
 		if err != nil {
-			log.Fatalf("could not load client key pair: %s", err)
+			log.Fatalf("failed to load credentials: %s", err)
 		}
-
-		certPool := x509.NewCertPool()
-		ca, err := os.ReadFile("./certs/ca.crt")
-		if err != nil {
-			log.Fatalf("could not read ca certificate: %s", err)
-		}
-
-		if ok := certPool.AppendCertsFromPEM(ca); !ok {
-			log.Fatalf("failed to append client certs")
-		}
-
-		creds := credentials.NewTLS(&tls.Config{
-			ServerName:   "localhost",
-			Certificates: []tls.Certificate{certificate},
-			RootCAs:      certPool,
-		})
 
 		conn, err := grpc.DialContext(
 			ctx,

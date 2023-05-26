@@ -2,9 +2,10 @@ package log
 
 import (
 	"context"
-	"go.uber.org/zap"
 	l "log"
 	"os"
+
+	"go.uber.org/zap"
 )
 
 var log *zap.SugaredLogger

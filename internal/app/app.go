@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"net"
+	"sync"
+
 	"github.com/Arkosh744/chat-server/internal/closer"
 	"github.com/Arkosh744/chat-server/internal/config"
 	"github.com/Arkosh744/chat-server/internal/interceptor"
@@ -9,8 +12,6 @@ import (
 	"github.com/Arkosh744/chat-server/pkg/chat_v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"net"
-	"sync"
 )
 
 type App struct {

@@ -2,6 +2,7 @@ package chat_v1
 
 import (
 	"context"
+
 	desc "github.com/Arkosh744/chat-server/pkg/chat_v1"
 )
 

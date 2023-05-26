@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+
 	"github.com/Arkosh744/chat-server/internal/client/grpc/auth"
 	"github.com/google/uuid"
 )

@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/kelseyhightower/envconfig"
 	"net"
+
+	"github.com/kelseyhightower/envconfig"
 )
 
 var _ AuthConfig = (*authConfig)(nil)

@@ -2,7 +2,6 @@ package interceptor
 
 import (
 	"context"
-	"strings"
 
 	"github.com/Arkosh744/chat-server/internal/client/grpc/auth"
 	"github.com/pkg/errors"
@@ -20,6 +19,8 @@ func NewAuthInterceptor(authClient auth.Client) *AuthInterceptor {
 	return &AuthInterceptor{authClient: authClient}
 }
 
+var errAccessDenied = errors.New("access denied")
+
 func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		md, ok := metadata.FromIncomingContext(ctx)
@@ -30,7 +31,7 @@ func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		ctx = metadata.NewOutgoingContext(ctx, md)
 
 		if err = i.authClient.Check(ctx, info.FullMethod); err != nil {
-			if strings.Contains(err.Error(), "access denied") {
+			if status.Code(err) == codes.PermissionDenied {
 				return nil, status.Errorf(codes.PermissionDenied, "access denied")
 			}
 

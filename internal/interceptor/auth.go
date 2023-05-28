@@ -19,8 +19,6 @@ func NewAuthInterceptor(authClient auth.Client) *AuthInterceptor {
 	return &AuthInterceptor{authClient: authClient}
 }
 
-var errAccessDenied = errors.New("access denied")
-
 func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		md, ok := metadata.FromIncomingContext(ctx)

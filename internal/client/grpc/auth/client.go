@@ -14,13 +14,11 @@ type Client interface {
 }
 
 type client struct {
-	userClient   userV1.UserClient
 	accessClient accessV1.AccessV1Client
 }
 
 func NewClient(c userV1.UserClient, a accessV1.AccessV1Client) *client {
 	return &client{
-		userClient:   c,
 		accessClient: a,
 	}
 }

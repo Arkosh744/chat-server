@@ -19,17 +19,17 @@ func NewAuthInterceptor(authClient auth.Client) *AuthInterceptor {
 	return &AuthInterceptor{authClient: authClient}
 }
 
+var errAccessDenied = status.Error(codes.PermissionDenied, "access denied")
+
 func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		md, ok := metadata.FromIncomingContext(ctx)
-		if !ok {
-			return nil, errors.New("failed to get metadata from incoming context")
+		if ok {
+			ctx = metadata.NewOutgoingContext(ctx, md)
 		}
 
-		ctx = metadata.NewOutgoingContext(ctx, md)
-
 		if err = i.authClient.Check(ctx, info.FullMethod); err != nil {
-			if status.Code(err) == codes.PermissionDenied {
+			if errors.Is(err, errAccessDenied) {
 				return nil, status.Errorf(codes.PermissionDenied, "access denied")
 			}
 

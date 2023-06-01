@@ -1,7 +1,8 @@
 package config
 
 import (
-	"fmt"
+	"net"
+
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -31,5 +32,5 @@ func NewAuthConfig() (*authConfig, error) {
 }
 
 func (c *authConfig) GetHost() string {
-	return fmt.Sprintf(c.Host + ":" + c.Port)
+	return net.JoinHostPort(c.Host, c.Port)
 }

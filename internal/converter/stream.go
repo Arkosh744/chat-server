@@ -14,7 +14,7 @@ func (cs *ChatStream) Send(msg *models.Message) error {
 	return cs.GrpcStream.Send(&chat_v1.Message{
 		From:      msg.From,
 		Text:      msg.Text,
-		Timestamp: timestamppb.New(msg.Timestamp),
+		CreatedAt: timestamppb.New(msg.Timestamp),
 	})
 }
 
@@ -22,6 +22,6 @@ func ToMessage(msg *chat_v1.Message) *models.Message {
 	return &models.Message{
 		From:      msg.GetFrom(),
 		Text:      msg.GetText(),
-		Timestamp: msg.GetTimestamp().AsTime(),
+		Timestamp: msg.GetCreatedAt().AsTime(),
 	}
 }

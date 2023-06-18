@@ -30,7 +30,7 @@ func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 
 		if err = i.authClient.Check(ctx, info.FullMethod); err != nil {
 			if errors.Is(err, errAccessDenied) {
-				return nil, status.Errorf(codes.PermissionDenied, "access denied")
+				return nil, errAccessDenied
 			}
 
 			return nil, errors.Wrap(err, "failed to check access")

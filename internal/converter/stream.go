@@ -2,23 +2,22 @@ package converter
 
 import (
 	"github.com/Arkosh744/chat-server/internal/models"
-	"github.com/Arkosh744/chat-server/pkg/chat_v1"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	chatV1 "github.com/Arkosh744/chat-server/pkg/chat_v1"
 )
 
-type ChatStream struct {
-	GrpcStream chat_v1.ChatV1_ConnectToChatServer
-}
+//type ChatStream struct {
+//	GrpcStream chatV1.ChatV1_ConnectToChatServer
+//}
+//
+//func (cs *ChatStream) Send(msg *models.Message) error {
+//	return cs.GrpcStream.Send(&chatV1.Message{
+//		From:      msg.From,
+//		Text:      msg.Text,
+//		CreatedAt: timestamppb.New(msg.Timestamp),
+//	})
+//}
 
-func (cs *ChatStream) Send(msg *models.Message) error {
-	return cs.GrpcStream.Send(&chat_v1.Message{
-		From:      msg.From,
-		Text:      msg.Text,
-		CreatedAt: timestamppb.New(msg.Timestamp),
-	})
-}
-
-func ToMessage(msg *chat_v1.Message) *models.Message {
+func ToMessage(msg *chatV1.Message) *models.Message {
 	return &models.Message{
 		From:      msg.GetFrom(),
 		Text:      msg.GetText(),

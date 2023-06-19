@@ -6,13 +6,14 @@ import (
 	"github.com/Arkosh744/chat-server/internal/log"
 	"github.com/Arkosh744/chat-server/internal/models"
 	"github.com/Arkosh744/chat-server/internal/repo"
+	chatV1 "github.com/Arkosh744/chat-server/pkg/chat_v1"
 )
 
 var _ Service = (*service)(nil)
 
 type Service interface {
 	CreateChat(ctx context.Context, usernames []string, saveHistory bool) (string, error)
-	ConnectToChat(ctx context.Context, chatID string, username string, stream models.Stream) error
+	ConnectToChat(ctx context.Context, chatID string, username string, stream chatV1.ChatV1_ConnectToChatServer) error
 	AddUserToChat(_ context.Context, chatID string, username string) error
 	SendMessage(ctx context.Context, chatID string, message *models.Message) error
 }
@@ -37,8 +38,10 @@ func (s *service) CreateChat(ctx context.Context, usernames []string, saveHistor
 	return chatID, nil
 }
 
-func (s *service) ConnectToChat(ctx context.Context, chatID string, username string, stream models.Stream) error {
+func (s *service) ConnectToChat(ctx context.Context, chatID string, username string, stream chatV1.ChatV1_ConnectToChatServer) error {
 	if err := s.repo.ConnectToChat(ctx, chatID, username, stream); err != nil {
+		log.Warnf("failed to connect user: %s to chat: %s", username, chatID)
+
 		return err
 	}
 
@@ -52,7 +55,7 @@ func (s *service) SendMessage(ctx context.Context, chatID string, message *model
 		return err
 	}
 
-	log.Infof("sent message: %s to chat: %s", message, chatID)
+	log.Infof("sent message: %s to chat: %s", message.Text, chatID)
 
 	return nil
 }

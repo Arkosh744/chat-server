@@ -1,5 +1,3 @@
-// repo.go
-
 package repo
 
 import (
@@ -8,14 +6,16 @@ import (
 	"sync"
 
 	"github.com/Arkosh744/chat-server/internal/models"
+	chatV1 "github.com/Arkosh744/chat-server/pkg/chat_v1"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Repository interface {
 	CreateChat(ctx context.Context, usernames []string, saveHistory bool) (string, error)
-	ConnectToChat(ctx context.Context, chatID string, username string, stream models.Stream) error
+	ConnectToChat(ctx context.Context, chatID string, username string, stream chatV1.ChatV1_ConnectToChatServer) error
 	AddUserToChat(_ context.Context, chatID string, username string) error
 	SendMessage(ctx context.Context, chatID string, message *models.Message) error
 }
@@ -31,6 +31,11 @@ func NewRepo() Repository {
 	}
 }
 
+var (
+	ErrChatNotFound   = errors.New("chat not found")
+	ErrUserNotAllowed = errors.New("user not allowed")
+)
+
 func (r *repository) CreateChat(_ context.Context, usernames []string, saveHistory bool) (string, error) {
 	chatID := uuid.New().String()
 
@@ -40,7 +45,7 @@ func (r *repository) CreateChat(_ context.Context, usernames []string, saveHisto
 		ID:          chatID,
 		SaveHistory: saveHistory,
 		Usernames:   make(map[string]struct{}, len(usernames)),
-		Streams:     make(map[string]models.Stream, len(usernames)),
+		Streams:     make(map[string]chatV1.ChatV1_ConnectToChatServer, len(usernames)),
 	}
 
 	for _, username := range usernames {
@@ -51,69 +56,81 @@ func (r *repository) CreateChat(_ context.Context, usernames []string, saveHisto
 
 	return chatID, nil
 }
-
-func (r *repository) ConnectToChat(ctx context.Context, chatID string, username string, stream models.Stream) error {
-	r.muChat.Lock()
+func (r *repository) ConnectToChat(_ context.Context, chatID string, username string, stream chatV1.ChatV1_ConnectToChatServer) error {
+	r.muChat.RLock()
 
 	chat, ok := r.chats[chatID]
 	if !ok {
-		r.muChat.Unlock()
+		r.muChat.RUnlock()
 		return fmt.Errorf("chat %s not found", chatID)
 	}
 
+	r.muChat.RUnlock()
+
 	if _, ok := chat.Usernames[username]; !ok {
-		r.muChat.Unlock()
 		return fmt.Errorf("user %s not allowed to be in chat %s", username, chatID)
 	}
+
+	chat.Mu.Lock()
 
 	uid := uuid.New().String()
 	chat.Streams[uid] = stream
 
 	if chat.SaveHistory {
 		for _, message := range chat.Messages {
-			if err := stream.Send(message); err != nil {
-				r.muChat.Unlock()
+			if err := stream.Send(&chatV1.Message{
+				From:      message.From,
+				Text:      message.Text,
+				CreatedAt: timestamppb.New(message.Timestamp),
+			}); err != nil {
 				return err
 			}
 		}
 	}
-	r.muChat.Unlock()
+	chat.Mu.Unlock()
 
-	go func() {
-		<-ctx.Done()
-		chat.Mu.Lock()
-		delete(chat.Streams, uid)
-		chat.Mu.Unlock()
-	}()
+	<-stream.Context().Done()
+
+	chat.Mu.Lock()
+	delete(chat.Streams, uid)
+	chat.Mu.Unlock()
 
 	return nil
 }
 
 func (r *repository) SendMessage(_ context.Context, chatID string, message *models.Message) error {
-	r.muChat.Lock()
+	r.muChat.RLock()
+	defer r.muChat.RUnlock()
 
 	chat, ok := r.chats[chatID]
 	if !ok {
-		r.muChat.Unlock()
-		return fmt.Errorf("chat does not exist")
+		return ErrChatNotFound
 	}
 
 	if chat.SaveHistory {
+		chat.Mu.Lock()
 		chat.Messages = append(chat.Messages, message)
+		chat.Mu.Unlock()
 	}
+
+	chat.Mu.Lock()
 
 	var resErr *multierror.Error
-	for _, stream := range chat.Streams {
-		if err := stream.Send(message); err != nil {
+	for i := range chat.Streams {
+		if err := chat.Streams[i].Send(&chatV1.Message{
+			From:      message.From,
+			Text:      message.Text,
+			CreatedAt: timestamppb.New(message.Timestamp),
+		}); err != nil {
 			resErr = multierror.Append(resErr, err)
 		}
-
 	}
+
+	chat.Mu.Unlock()
+
 	if resErr.ErrorOrNil() != nil {
 		return errors.Wrap(resErr.ErrorOrNil(), "error sending message to streams")
 	}
-
-	r.muChat.Unlock()
 
 	return nil
 }
@@ -124,9 +141,11 @@ func (r *repository) AddUserToChat(_ context.Context, chatID string, username st
 
 	chat, ok := r.chats[chatID]
 	if !ok {
-		r.muChat.Unlock()
-		return fmt.Errorf("chat %s not found", chatID)
+		return ErrChatNotFound
 	}
+
+	chat.Mu.Lock()
+	defer chat.Mu.Unlock()
 
 	chat.Usernames[username] = struct{}{}
 

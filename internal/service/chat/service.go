@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 
+	"github.com/Arkosh744/chat-server/internal/log"
 	"github.com/Arkosh744/chat-server/internal/models"
 	"github.com/Arkosh744/chat-server/internal/repo"
 )
@@ -31,17 +32,37 @@ func (s *service) CreateChat(ctx context.Context, usernames []string, saveHistor
 		return "", err
 	}
 
+	log.Infof("created chat: %s for users: %s", chatID, usernames)
+
 	return chatID, nil
 }
 
 func (s *service) ConnectToChat(ctx context.Context, chatID string, username string, stream models.Stream) error {
-	return s.repo.ConnectToChat(ctx, chatID, username, stream)
+	if err := s.repo.ConnectToChat(ctx, chatID, username, stream); err != nil {
+		return err
+	}
+
+	log.Infof("connected user: %s to chat: %s", username, chatID)
+
+	return nil
 }
 
 func (s *service) SendMessage(ctx context.Context, chatID string, message *models.Message) error {
-	return s.repo.SendMessage(ctx, chatID, message)
+	if err := s.repo.SendMessage(ctx, chatID, message); err != nil {
+		return err
+	}
+
+	log.Infof("sent message: %s to chat: %s", message, chatID)
+
+	return nil
 }
 
 func (s *service) AddUserToChat(ctx context.Context, chatID string, username string) error {
-	return s.repo.AddUserToChat(ctx, chatID, username)
+	if err := s.repo.AddUserToChat(ctx, chatID, username); err != nil {
+		return err
+	}
+
+	log.Infof("added user: %s to chat: %s", username, chatID)
+
+	return nil
 }

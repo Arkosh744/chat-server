@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Arkosh744/chat-server/internal/log"
 	"github.com/Arkosh744/chat-server/internal/models"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
@@ -40,8 +39,8 @@ func (r *repository) CreateChat(_ context.Context, usernames []string, saveHisto
 	r.chats[chatID] = &models.Chat{
 		ID:          chatID,
 		SaveHistory: saveHistory,
-		Usernames:   make(map[string]struct{}),
-		Streams:     make(map[string]models.Stream),
+		Usernames:   make(map[string]struct{}, len(usernames)),
+		Streams:     make(map[string]models.Stream, len(usernames)),
 	}
 
 	for _, username := range usernames {
@@ -106,7 +105,6 @@ func (r *repository) SendMessage(_ context.Context, chatID string, message *mode
 	var resErr *multierror.Error
 	for _, stream := range chat.Streams {
 		if err := stream.Send(message); err != nil {
-			log.Errorf("error sending message to stream: %s", err)
 			resErr = multierror.Append(resErr, err)
 		}
 

@@ -5,7 +5,7 @@ import (
 	desc "github.com/Arkosh744/chat-server/pkg/chat_v1"
 )
 
-func (i *Implementation) ConnectToChat(req *desc.ConnectChatRequest, grpcStream desc.ChatV1_ConnectChatServer) error {
+func (i *Implementation) ConnectToChat(req *desc.ConnectChatRequest, grpcStream desc.ChatV1_ConnectToChatServer) error {
 	ctx := grpcStream.Context()
 	stream := &converter.ChatStream{GrpcStream: grpcStream}
 

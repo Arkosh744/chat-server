@@ -10,7 +10,7 @@ option go_package = "github.com/Arkosh744/auth-grpc/pkg/chat_v1;chat_v1";
 
 service ChatV1  {
   rpc CreateChat(CreateChatRequest) returns (CreateChatResponse) {}
-  rpc ConnectChat(ConnectChatRequest) returns (stream Message) {}
+  rpc ConnectToChat(ConnectChatRequest) returns (stream Message) {}
   rpc SendMessage(SendMessageRequest) returns (google.protobuf.Empty) {}
   rpc AddUserToChat(AddUserToChatRequest) returns (google.protobuf.Empty) {}
 }

@@ -7,7 +7,7 @@ import (
 )
 
 type ChatStream struct {
-	GrpcStream chat_v1.ChatV1_ConnectChatServer
+	GrpcStream chat_v1.ChatV1_ConnectToChatServer
 }
 
 func (cs *ChatStream) Send(msg *models.Message) error {

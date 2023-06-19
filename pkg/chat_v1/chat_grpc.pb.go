@@ -24,7 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatV1Client interface {
 	CreateChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*CreateChatResponse, error)
-	ConnectChat(ctx context.Context, in *ConnectChatRequest, opts ...grpc.CallOption) (ChatV1_ConnectChatClient, error)
+	ConnectToChat(ctx context.Context, in *ConnectChatRequest, opts ...grpc.CallOption) (ChatV1_ConnectToChatClient, error)
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	AddUserToChat(ctx context.Context, in *AddUserToChatRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 }
@@ -46,12 +46,12 @@ func (c *chatV1Client) CreateChat(ctx context.Context, in *CreateChatRequest, op
 	return out, nil
 }
 
-func (c *chatV1Client) ConnectChat(ctx context.Context, in *ConnectChatRequest, opts ...grpc.CallOption) (ChatV1_ConnectChatClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ChatV1_ServiceDesc.Streams[0], "/chat_v1.ChatV1/ConnectChat", opts...)
+func (c *chatV1Client) ConnectToChat(ctx context.Context, in *ConnectChatRequest, opts ...grpc.CallOption) (ChatV1_ConnectToChatClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ChatV1_ServiceDesc.Streams[0], "/chat_v1.ChatV1/ConnectToChat", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &chatV1ConnectChatClient{stream}
+	x := &chatV1ConnectToChatClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -61,16 +61,16 @@ func (c *chatV1Client) ConnectChat(ctx context.Context, in *ConnectChatRequest, 
 	return x, nil
 }
 
-type ChatV1_ConnectChatClient interface {
+type ChatV1_ConnectToChatClient interface {
 	Recv() (*Message, error)
 	grpc.ClientStream
 }
 
-type chatV1ConnectChatClient struct {
+type chatV1ConnectToChatClient struct {
 	grpc.ClientStream
 }
 
-func (x *chatV1ConnectChatClient) Recv() (*Message, error) {
+func (x *chatV1ConnectToChatClient) Recv() (*Message, error) {
 	m := new(Message)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (c *chatV1Client) AddUserToChat(ctx context.Context, in *AddUserToChatReque
 // for forward compatibility
 type ChatV1Server interface {
 	CreateChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error)
-	ConnectChat(*ConnectChatRequest, ChatV1_ConnectChatServer) error
+	ConnectToChat(*ConnectChatRequest, ChatV1_ConnectToChatServer) error
 	SendMessage(context.Context, *SendMessageRequest) (*empty.Empty, error)
 	AddUserToChat(context.Context, *AddUserToChatRequest) (*empty.Empty, error)
 	mustEmbedUnimplementedChatV1Server()
@@ -114,8 +114,8 @@ type UnimplementedChatV1Server struct {
 func (UnimplementedChatV1Server) CreateChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateChat not implemented")
 }
-func (UnimplementedChatV1Server) ConnectChat(*ConnectChatRequest, ChatV1_ConnectChatServer) error {
-	return status.Errorf(codes.Unimplemented, "method ConnectChat not implemented")
+func (UnimplementedChatV1Server) ConnectToChat(*ConnectChatRequest, ChatV1_ConnectToChatServer) error {
+	return status.Errorf(codes.Unimplemented, "method ConnectToChat not implemented")
 }
 func (UnimplementedChatV1Server) SendMessage(context.Context, *SendMessageRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
@@ -154,24 +154,24 @@ func _ChatV1_CreateChat_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChatV1_ConnectChat_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _ChatV1_ConnectToChat_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ConnectChatRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ChatV1Server).ConnectChat(m, &chatV1ConnectChatServer{stream})
+	return srv.(ChatV1Server).ConnectToChat(m, &chatV1ConnectToChatServer{stream})
 }
 
-type ChatV1_ConnectChatServer interface {
+type ChatV1_ConnectToChatServer interface {
 	Send(*Message) error
 	grpc.ServerStream
 }
 
-type chatV1ConnectChatServer struct {
+type chatV1ConnectToChatServer struct {
 	grpc.ServerStream
 }
 
-func (x *chatV1ConnectChatServer) Send(m *Message) error {
+func (x *chatV1ConnectToChatServer) Send(m *Message) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -233,8 +233,8 @@ var ChatV1_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "ConnectChat",
-			Handler:       _ChatV1_ConnectChat_Handler,
+			StreamName:    "ConnectToChat",
+			Handler:       _ChatV1_ConnectToChat_Handler,
 			ServerStreams: true,
 		},
 	},

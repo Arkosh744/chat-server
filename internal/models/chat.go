@@ -12,10 +12,14 @@ type Chat struct {
 	Usernames map[string]struct{}
 
 	Messages []*Message
-	Streams  map[string]chatV1.ChatV1_ConnectToChatServer
+	Streams  map[string]Stream
 
 	SaveHistory bool
 	Mu          sync.RWMutex
+}
+
+type Stream interface {
+	chatV1.ChatV1_ConnectToChatServer
 }
 
 type Message struct {

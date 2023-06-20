@@ -5,22 +5,24 @@ import (
 	chatV1 "github.com/Arkosh744/chat-server/pkg/chat_v1"
 )
 
-//type ChatStream struct {
-//	GrpcStream chatV1.ChatV1_ConnectToChatServer
-//}
-//
-//func (cs *ChatStream) Send(msg *models.Message) error {
-//	return cs.GrpcStream.Send(&chatV1.Message{
-//		From:      msg.From,
-//		Text:      msg.Text,
-//		CreatedAt: timestamppb.New(msg.Timestamp),
-//	})
-//}
-
 func ToMessage(msg *chatV1.Message) *models.Message {
 	return &models.Message{
 		From:      msg.GetFrom(),
 		Text:      msg.GetText(),
 		Timestamp: msg.GetCreatedAt().AsTime(),
+	}
+}
+
+func ToDescChatResponse(chat *models.Chat) *chatV1.GetChatResponse {
+	usernames := make([]string, 0, len(chat.Usernames))
+
+	for k := range chat.Usernames {
+		usernames = append(usernames, k)
+	}
+
+	return &chatV1.GetChatResponse{
+		Id:          chat.ID,
+		Usernames:   usernames,
+		SaveHistory: chat.SaveHistory,
 	}
 }

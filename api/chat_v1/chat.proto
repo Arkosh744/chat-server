@@ -12,6 +12,7 @@ service ChatV1  {
   rpc CreateChat(CreateChatRequest) returns (CreateChatResponse) {}
   rpc ConnectToChat(ConnectChatRequest) returns (stream Message) {}
   rpc SendMessage(SendMessageRequest) returns (google.protobuf.Empty) {}
+  rpc GetChat(GetChatRequest) returns (GetChatResponse) {}
   rpc AddUserToChat(AddUserToChatRequest) returns (google.protobuf.Empty) {}
 }
 
@@ -46,4 +47,14 @@ message CreateChatResponse {
 message AddUserToChatRequest {
   string chat_id = 1;
   string username = 2;
+}
+
+message GetChatRequest {
+  string chat_id = 1;
+}
+
+message GetChatResponse {
+  string id = 1;
+  repeated string usernames = 2;
+  bool save_history = 3;
 }

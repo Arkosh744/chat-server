@@ -15,7 +15,8 @@ import (
 
 type Repository interface {
 	CreateChat(ctx context.Context, usernames []string, saveHistory bool) (string, error)
-	ConnectToChat(ctx context.Context, chatID string, username string, stream chatV1.ChatV1_ConnectToChatServer) error
+	GetChat(_ context.Context, chatID string) (*models.Chat, error)
+	ConnectToChat(ctx context.Context, chatID string, username string, stream models.Stream) error
 	AddUserToChat(_ context.Context, chatID string, username string) error
 	SendMessage(ctx context.Context, chatID string, message *models.Message) error
 }
@@ -45,7 +46,7 @@ func (r *repository) CreateChat(_ context.Context, usernames []string, saveHisto
 		ID:          chatID,
 		SaveHistory: saveHistory,
 		Usernames:   make(map[string]struct{}, len(usernames)),
-		Streams:     make(map[string]chatV1.ChatV1_ConnectToChatServer, len(usernames)),
+		Streams:     make(map[string]models.Stream, len(usernames)),
 	}
 
 	for _, username := range usernames {
@@ -56,13 +57,26 @@ func (r *repository) CreateChat(_ context.Context, usernames []string, saveHisto
 
 	return chatID, nil
 }
-func (r *repository) ConnectToChat(_ context.Context, chatID string, username string, stream chatV1.ChatV1_ConnectToChatServer) error {
+
+func (r *repository) GetChat(_ context.Context, chatID string) (*models.Chat, error) {
+	r.muChat.RLock()
+	defer r.muChat.RUnlock()
+
+	chat, ok := r.chats[chatID]
+	if !ok {
+		return nil, ErrChatNotFound
+	}
+
+	return chat, nil
+}
+
+func (r *repository) ConnectToChat(_ context.Context, chatID string, username string, stream models.Stream) error {
 	r.muChat.RLock()
 
 	chat, ok := r.chats[chatID]
 	if !ok {
 		r.muChat.RUnlock()
-		return fmt.Errorf("chat %s not found", chatID)
+		return ErrChatNotFound
 	}
 
 	r.muChat.RUnlock()

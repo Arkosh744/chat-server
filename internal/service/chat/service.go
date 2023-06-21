@@ -13,9 +13,9 @@ var _ Service = (*service)(nil)
 type Service interface {
 	CreateChat(ctx context.Context, usernames []string, saveHistory bool) (string, error)
 	GetChat(ctx context.Context, chatID string) (*models.Chat, error)
-	ConnectToChat(ctx context.Context, chatID string, username string, stream models.Stream) error
+	ConnectToChat(ctx context.Context, chatID string, username string, messages chan<- models.Message) error
 	AddUserToChat(ctx context.Context, chatID string, username string) error
-	SendMessage(ctx context.Context, chatID string, message *models.Message) error
+	SendMessage(ctx context.Context, chatID string, message models.Message) error
 }
 
 type service struct {
@@ -49,8 +49,8 @@ func (s *service) GetChat(ctx context.Context, chatID string) (*models.Chat, err
 	return chat, nil
 }
 
-func (s *service) ConnectToChat(ctx context.Context, chatID string, username string, stream models.Stream) error {
-	if err := s.repo.ConnectToChat(ctx, chatID, username, stream); err != nil {
+func (s *service) ConnectToChat(ctx context.Context, chatID string, username string, messagesCh chan<- models.Message) error {
+	if err := s.repo.ConnectToChat(ctx, chatID, username, messagesCh); err != nil {
 		log.Warnf("failed to connect user: %s to chat: %s", username, chatID)
 
 		return err
@@ -61,7 +61,7 @@ func (s *service) ConnectToChat(ctx context.Context, chatID string, username str
 	return nil
 }
 
-func (s *service) SendMessage(ctx context.Context, chatID string, message *models.Message) error {
+func (s *service) SendMessage(ctx context.Context, chatID string, message models.Message) error {
 	if err := s.repo.SendMessage(ctx, chatID, message); err != nil {
 		return err
 	}

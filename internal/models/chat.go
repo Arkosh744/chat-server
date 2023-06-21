@@ -11,8 +11,8 @@ type Chat struct {
 	ID        string
 	Usernames map[string]struct{}
 
-	Messages []*Message
-	Streams  map[string]Stream
+	Messages []Message
+	Streams  map[string]chan<- Message
 
 	SaveHistory bool
 	Mu          sync.RWMutex

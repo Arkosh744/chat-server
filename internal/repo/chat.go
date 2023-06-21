@@ -6,19 +6,16 @@ import (
 	"sync"
 
 	"github.com/Arkosh744/chat-server/internal/models"
-	chatV1 "github.com/Arkosh744/chat-server/pkg/chat_v1"
 	"github.com/google/uuid"
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Repository interface {
 	CreateChat(ctx context.Context, usernames []string, saveHistory bool) (string, error)
 	GetChat(_ context.Context, chatID string) (*models.Chat, error)
-	ConnectToChat(ctx context.Context, chatID string, username string, stream models.Stream) error
+	ConnectToChat(ctx context.Context, chatID string, username string, messagesCh chan<- models.Message) error
 	AddUserToChat(_ context.Context, chatID string, username string) error
-	SendMessage(ctx context.Context, chatID string, message *models.Message) error
+	SendMessage(ctx context.Context, chatID string, message models.Message) error
 }
 
 type repository struct {
@@ -46,7 +43,7 @@ func (r *repository) CreateChat(_ context.Context, usernames []string, saveHisto
 		ID:          chatID,
 		SaveHistory: saveHistory,
 		Usernames:   make(map[string]struct{}, len(usernames)),
-		Streams:     make(map[string]models.Stream, len(usernames)),
+		Streams:     make(map[string]chan<- models.Message, len(usernames)),
 	}
 
 	for _, username := range usernames {
@@ -70,7 +67,7 @@ func (r *repository) GetChat(_ context.Context, chatID string) (*models.Chat, er
 	return chat, nil
 }
 
-func (r *repository) ConnectToChat(_ context.Context, chatID string, username string, stream models.Stream) error {
+func (r *repository) ConnectToChat(ctx context.Context, chatID string, username string, messagesCh chan<- models.Message) error {
 	r.muChat.RLock()
 
 	chat, ok := r.chats[chatID]
@@ -87,32 +84,25 @@ func (r *repository) ConnectToChat(_ context.Context, chatID string, username st
 
 	chat.Mu.Lock()
 
-	uid := uuid.New().String()
-	chat.Streams[uid] = stream
+	chat.Streams[username] = messagesCh
 
 	if chat.SaveHistory {
 		for _, message := range chat.Messages {
-			if err := stream.Send(&chatV1.Message{
-				From:      message.From,
-				Text:      message.Text,
-				CreatedAt: timestamppb.New(message.Timestamp),
-			}); err != nil {
-				return err
-			}
+			messagesCh <- message
 		}
 	}
 	chat.Mu.Unlock()
 
-	<-stream.Context().Done()
+	<-ctx.Done()
 
 	chat.Mu.Lock()
-	delete(chat.Streams, uid)
+	delete(chat.Streams, username)
 	chat.Mu.Unlock()
 
 	return nil
 }
 
-func (r *repository) SendMessage(_ context.Context, chatID string, message *models.Message) error {
+func (r *repository) SendMessage(_ context.Context, chatID string, message models.Message) error {
 	r.muChat.RLock()
 	defer r.muChat.RUnlock()
 
@@ -128,22 +118,10 @@ func (r *repository) SendMessage(_ context.Context, chatID string, message *mode
 	}
 
 	chat.Mu.Lock()
+	defer chat.Mu.Unlock()
 
-	var resErr *multierror.Error
-	for i := range chat.Streams {
-		if err := chat.Streams[i].Send(&chatV1.Message{
-			From:      message.From,
-			Text:      message.Text,
-			CreatedAt: timestamppb.New(message.Timestamp),
-		}); err != nil {
-			resErr = multierror.Append(resErr, err)
-		}
-	}
-
-	chat.Mu.Unlock()
-
-	if resErr.ErrorOrNil() != nil {
-		return errors.Wrap(resErr.ErrorOrNil(), "error sending message to streams")
+	for _, messages := range chat.Streams {
+		messages <- message
 	}
 
 	return nil

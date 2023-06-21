@@ -3,13 +3,22 @@ package converter
 import (
 	"github.com/Arkosh744/chat-server/internal/models"
 	chatV1 "github.com/Arkosh744/chat-server/pkg/chat_v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func ToMessage(msg *chatV1.Message) *models.Message {
-	return &models.Message{
+func ToMessage(msg *chatV1.Message) models.Message {
+	return models.Message{
 		From:      msg.GetFrom(),
 		Text:      msg.GetText(),
 		Timestamp: msg.GetCreatedAt().AsTime(),
+	}
+}
+
+func ToDesckMessage(msg models.Message) *chatV1.Message {
+	return &chatV1.Message{
+		From:      msg.From,
+		Text:      msg.From,
+		CreatedAt: timestamppb.New(msg.Timestamp),
 	}
 }
 

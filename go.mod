@@ -4,8 +4,10 @@ go 1.20
 
 require (
 	github.com/Arkosh744/auth-service-api v0.0.0-20230525181501-d9cdb683881a
+	github.com/envoyproxy/protoc-gen-validate v0.10.0
 	github.com/golang/protobuf v1.5.3
 	github.com/google/uuid v1.3.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/pkg/errors v0.9.1
@@ -15,8 +17,8 @@ require (
 )
 
 require (
-	github.com/envoyproxy/protoc-gen-validate v0.10.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.2 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

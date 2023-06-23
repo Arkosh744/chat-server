@@ -7,10 +7,10 @@ import (
 )
 
 func (i *Implementation) CreateChat(ctx context.Context, req *desc.CreateChatRequest) (*desc.CreateChatResponse, error) {
-	chatID, err := i.chatService.CreateChat(ctx, req.GetUsernames())
+	chatID, err := i.chatService.CreateChat(ctx, req.GetUsernames(), req.GetSaveHistory())
 	if err != nil {
 		return nil, err
 	}
 
-	return &desc.CreateChatResponse{ChatId: chatID.String()}, nil
+	return &desc.CreateChatResponse{ChatId: chatID}, nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/Arkosh744/chat-server/internal/closer"
 	"github.com/Arkosh744/chat-server/internal/config"
 	"github.com/Arkosh744/chat-server/internal/log"
+	"github.com/Arkosh744/chat-server/internal/repo"
 	"github.com/Arkosh744/chat-server/internal/service/chat"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -20,7 +21,9 @@ type serviceProvider struct {
 	authConfig config.AuthConfig
 	grpcConfig config.GRPCConfig
 
-	authClient  auth.Client
+	authClient auth.Client
+
+	chatRepo    repo.Repository
 	chatService chat.Service
 
 	chatImpl *chatV1.Implementation
@@ -68,9 +71,17 @@ func newServiceProvider() *serviceProvider {
 	return &serviceProvider{}
 }
 
+func (s *serviceProvider) GetChatRepo(_ context.Context) repo.Repository {
+	if s.chatRepo == nil {
+		s.chatRepo = repo.NewRepo()
+	}
+
+	return s.chatRepo
+}
+
 func (s *serviceProvider) GetChatService(ctx context.Context) chat.Service {
 	if s.chatService == nil {
-		s.chatService = chat.NewService(s.GetAuthClient(ctx))
+		s.chatService = chat.NewService(s.GetChatRepo(ctx))
 	}
 
 	return s.chatService

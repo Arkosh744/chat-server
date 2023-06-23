@@ -3,9 +3,9 @@ package models
 import (
 	"sync"
 	"time"
-
-	chatV1 "github.com/Arkosh744/chat-server/pkg/chat_v1"
 )
+
+const ChanMessageCapacity = 100
 
 type Chat struct {
 	ID        string
@@ -15,11 +15,10 @@ type Chat struct {
 	Streams  map[string]chan<- Message
 
 	SaveHistory bool
-	Mu          sync.RWMutex
-}
 
-type Stream interface {
-	chatV1.ChatV1_ConnectToChatServer
+	MuUsers    sync.RWMutex
+	MuMessages sync.RWMutex
+	MuStreams  sync.Mutex
 }
 
 type Message struct {

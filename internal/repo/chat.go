@@ -13,9 +13,9 @@ import (
 type Repository interface {
 	CreateChat(ctx context.Context, usernames []string, saveHistory bool) (string, error)
 	GetChat(_ context.Context, chatID string) (*models.Chat, error)
-	ConnectToChat(ctx context.Context, chatID string, username string, messagesCh chan<- models.Message) error
+	ConnectToChat(ctx context.Context, chatID string, username string) (*models.Chat, error)
 	AddUserToChat(_ context.Context, chatID string, username string) error
-	SendMessage(ctx context.Context, chatID string, message models.Message) error
+	SaveMessage(ctx context.Context, chatID string, message models.Message) error
 }
 
 type repository struct {
@@ -67,42 +67,37 @@ func (r *repository) GetChat(_ context.Context, chatID string) (*models.Chat, er
 	return chat, nil
 }
 
-func (r *repository) ConnectToChat(ctx context.Context, chatID string, username string, messagesCh chan<- models.Message) error {
+func (r *repository) ConnectToChat(_ context.Context, chatID string, username string) (*models.Chat, error) {
 	r.muChat.RLock()
 
 	chat, ok := r.chats[chatID]
 	if !ok {
 		r.muChat.RUnlock()
-		return ErrChatNotFound
+		return nil, ErrChatNotFound
 	}
 
 	r.muChat.RUnlock()
 
+	chat.MuUsers.RLock()
+
 	if _, ok := chat.Usernames[username]; !ok {
-		return fmt.Errorf("user %s not allowed to be in chat %s", username, chatID)
+		chat.MuUsers.RUnlock()
+
+		return nil, fmt.Errorf("user %s not allowed to be in chat %s", username, chatID)
+	}
+	chat.MuUsers.RUnlock()
+
+	chat.MuStreams.Lock()
+	defer chat.MuStreams.Unlock()
+
+	if _, ok := chat.Streams[username]; ok {
+		return nil, fmt.Errorf("user %s already connected to chat %s", username, chatID)
 	}
 
-	chat.Mu.Lock()
-
-	chat.Streams[username] = messagesCh
-
-	if chat.SaveHistory {
-		for _, message := range chat.Messages {
-			messagesCh <- message
-		}
-	}
-	chat.Mu.Unlock()
-
-	<-ctx.Done()
-
-	chat.Mu.Lock()
-	delete(chat.Streams, username)
-	chat.Mu.Unlock()
-
-	return nil
+	return chat, nil
 }
 
-func (r *repository) SendMessage(_ context.Context, chatID string, message models.Message) error {
+func (r *repository) SaveMessage(_ context.Context, chatID string, message models.Message) error {
 	r.muChat.RLock()
 	defer r.muChat.RUnlock()
 
@@ -111,18 +106,13 @@ func (r *repository) SendMessage(_ context.Context, chatID string, message model
 		return ErrChatNotFound
 	}
 
-	if chat.SaveHistory {
-		chat.Mu.Lock()
-		chat.Messages = append(chat.Messages, message)
-		chat.Mu.Unlock()
+	if !chat.SaveHistory {
+		return nil
 	}
 
-	chat.Mu.Lock()
-	defer chat.Mu.Unlock()
-
-	for _, messages := range chat.Streams {
-		messages <- message
-	}
+	chat.MuMessages.Lock()
+	chat.Messages = append(chat.Messages, message)
+	chat.MuMessages.Unlock()
 
 	return nil
 }
@@ -136,8 +126,8 @@ func (r *repository) AddUserToChat(_ context.Context, chatID string, username st
 		return ErrChatNotFound
 	}
 
-	chat.Mu.Lock()
-	defer chat.Mu.Unlock()
+	chat.MuUsers.Lock()
+	defer chat.MuUsers.Unlock()
 
 	chat.Usernames[username] = struct{}{}
 

@@ -9,7 +9,16 @@ import (
 )
 
 func (i *Implementation) SendMessage(ctx context.Context, req *desc.SendMessageRequest) (*emptypb.Empty, error) {
-	if err := i.chatService.SendMessage(ctx, req.GetChatId(), converter.ToMessage(req.GetMessage())); err != nil {
+	chat, err := i.chatService.GetChat(ctx, req.GetChatId())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, messages := range chat.Streams {
+		messages <- converter.ToMessage(req.GetMessage())
+	}
+
+	if err = i.chatService.SaveMessage(ctx, req.GetChatId(), converter.ToMessage(req.GetMessage())); err != nil {
 		return nil, err
 	}
 

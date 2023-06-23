@@ -5,6 +5,8 @@ import (
 	desc "github.com/Arkosh744/chat-server/pkg/chat_v1"
 )
 
+var _ desc.ChatV1Server = (*Implementation)(nil)
+
 type Implementation struct {
 	desc.UnimplementedChatV1Server
 

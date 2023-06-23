@@ -14,10 +14,10 @@ func ToMessage(msg *chatV1.Message) models.Message {
 	}
 }
 
-func ToDesckMessage(msg models.Message) *chatV1.Message {
+func ToDescMessage(msg models.Message) *chatV1.Message {
 	return &chatV1.Message{
 		From:      msg.From,
-		Text:      msg.From,
+		Text:      msg.Text,
 		CreatedAt: timestamppb.New(msg.Timestamp),
 	}
 }

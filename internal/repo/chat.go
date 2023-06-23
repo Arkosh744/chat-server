@@ -56,36 +56,18 @@ func (r *repository) CreateChat(_ context.Context, usernames []string, saveHisto
 }
 
 func (r *repository) GetChat(_ context.Context, chatID string) (*models.Chat, error) {
-	r.muChat.RLock()
-	defer r.muChat.RUnlock()
-
-	chat, ok := r.chats[chatID]
-	if !ok {
-		return nil, ErrChatNotFound
-	}
-
-	return chat, nil
+	return r.getChat(chatID)
 }
 
 func (r *repository) ConnectToChat(_ context.Context, chatID string, username string) (*models.Chat, error) {
-	r.muChat.RLock()
-
-	chat, ok := r.chats[chatID]
-	if !ok {
-		r.muChat.RUnlock()
-		return nil, ErrChatNotFound
+	chat, err := r.getChat(chatID)
+	if err != nil {
+		return nil, err
 	}
 
-	r.muChat.RUnlock()
-
-	chat.MuUsers.RLock()
-
-	if _, ok := chat.Usernames[username]; !ok {
-		chat.MuUsers.RUnlock()
-
-		return nil, fmt.Errorf("user %s not allowed to be in chat %s", username, chatID)
+	if err = checkUserExists(chat, username, chatID); err != nil {
+		return nil, err
 	}
-	chat.MuUsers.RUnlock()
 
 	chat.MuStreams.Lock()
 	defer chat.MuStreams.Unlock()
@@ -98,12 +80,9 @@ func (r *repository) ConnectToChat(_ context.Context, chatID string, username st
 }
 
 func (r *repository) SaveMessage(_ context.Context, chatID string, message models.Message) error {
-	r.muChat.RLock()
-	defer r.muChat.RUnlock()
-
-	chat, ok := r.chats[chatID]
-	if !ok {
-		return ErrChatNotFound
+	chat, err := r.getChat(chatID)
+	if err != nil {
+		return err
 	}
 
 	if !chat.SaveHistory {
@@ -118,12 +97,9 @@ func (r *repository) SaveMessage(_ context.Context, chatID string, message model
 }
 
 func (r *repository) AddUserToChat(_ context.Context, chatID string, username string) error {
-	r.muChat.Lock()
-	defer r.muChat.Unlock()
-
-	chat, ok := r.chats[chatID]
-	if !ok {
-		return ErrChatNotFound
+	chat, err := r.getChat(chatID)
+	if err != nil {
+		return err
 	}
 
 	chat.MuUsers.Lock()
@@ -132,4 +108,28 @@ func (r *repository) AddUserToChat(_ context.Context, chatID string, username st
 	chat.Usernames[username] = struct{}{}
 
 	return nil
+}
+
+func checkUserExists(chat *models.Chat, username string, chatID string) error {
+	chat.MuUsers.RLock()
+
+	if _, ok := chat.Usernames[username]; !ok {
+		chat.MuUsers.RUnlock()
+
+		return fmt.Errorf("user %s not allowed to be in chat %s", username, chatID)
+	}
+	chat.MuUsers.RUnlock()
+	return nil
+}
+
+func (r *repository) getChat(chatID string) (*models.Chat, error) {
+	r.muChat.RLock()
+	defer r.muChat.RUnlock()
+
+	chat, ok := r.chats[chatID]
+	if !ok {
+		return nil, ErrChatNotFound
+	}
+
+	return chat, nil
 }
